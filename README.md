@@ -49,5 +49,9 @@ scripts/validate_marketplace.py
 
 ## Maintenance
 
-When releasing a new version of a plugin, update the matching marketplace entry
-`ref` to the plugin release tag. Keep Codex and Claude entries aligned.
+`graph-sync-agent-kit` release tags update this marketplace automatically. The
+release workflow updates the matching Codex and Claude Code `ref` values, then
+pushes the marketplace commit.
+
+For manual maintenance, keep Codex and Claude entries aligned and point each
+plugin `ref` to a release tag from the source repository.
