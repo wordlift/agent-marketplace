@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-marketplace.json",
+  "name": "wordlift",
+  "description": "WordLift agent plugins for semantic curation, graph-sync workflows, and project automation.",
+  "version": "0.1.0",
+  "owner": {
+    "name": "WordLift"
+  },
+  "plugins": [
+    {
+      "name": "graph-sync-agent-kit",
+      "displayName": "Graph Sync Agent Kit",
+      "source": {
+        "source": "github",
+        "repo": "wordlift/graph-sync-agent-kit",
+        "ref": "v0.2.0"
+      },
+      "description": "Agent skills for WordLift graph-sync curation, project implementation, repository lifecycle, YARRRML review, postprocessor authoring, and GitHub workflow review.",
+      "version": "0.2.0",
+      "author": {
+        "name": "WordLift"
+      },
+      "homepage": "https://github.com/wordlift/graph-sync-agent-kit",
+      "repository": "https://github.com/wordlift/graph-sync-agent-kit",
+      "keywords": [
+        "graph-sync",
+        "wordlift",
+        "schema-org",
+        "yarrrml",
+        "skills"
+      ],
+      "category": "engineering"
+    }
+  ]
+}
