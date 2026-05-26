@@ -13,10 +13,10 @@
       "source": {
         "source": "github",
         "repo": "wordlift/graph-sync-agent-kit",
-        "ref": "v0.2.1"
+        "ref": "v0.2.2"
       },
       "description": "Agent skills for WordLift graph-sync curation, project implementation, repository lifecycle, YARRRML review, postprocessor authoring, and GitHub workflow review.",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "author": {
         "name": "WordLift"
       },
