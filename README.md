@@ -1,5 +1,9 @@
 # WordLift Agent Marketplace
 
+<p align="center">
+  <img src="assets/image.png" alt="WordLift Agent Marketplace" />
+</p>
+
 Marketplace metadata for WordLift agent plugins.
 
 This repository is intentionally a catalog. Plugin implementation files stay in
