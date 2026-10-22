@@ -11,10 +11,8 @@ from pathlib import Path
 from typing import Any
 
 
-PLUGIN_NAME = "graph-sync-agent-kit"
-PLUGIN_REPO = "wordlift/graph-sync-agent-kit"
-PLUGIN_GIT_URL = "https://github.com/wordlift/graph-sync-agent-kit.git"
 MARKETPLACE_NAME = "wordlift"
+REPO_OWNER = "wordlift"
 SEMVER_TAG_RE = re.compile(r"^v\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$")
 
 
@@ -53,33 +51,31 @@ def validate_codex(catalog: dict[str, Any], errors: list[str]) -> None:
     if not isinstance(interface, dict) or not non_empty_string(interface.get("displayName")):
         errors.append("Codex marketplace must define `interface.displayName`")
 
-    plugins = require_plugins(catalog, "Codex", errors)
-    if not plugins:
-        return
-    entry = require_plugin_entry(plugins, "Codex", errors)
-    if entry is None:
-        return
+    for name, entry in plugin_entries(catalog, "Codex", errors).items():
+        validate_codex_entry(name, entry, errors)
 
+
+def validate_codex_entry(name: str, entry: dict[str, Any], errors: list[str]) -> None:
     source = entry.get("source")
     if not isinstance(source, dict):
-        errors.append("Codex graph-sync-agent-kit entry must use an object `source`")
+        errors.append(f"Codex {name} entry must use an object `source`")
         return
     if source.get("source") != "url":
-        errors.append("Codex graph-sync-agent-kit entry must use Git-backed `source: url`")
-    if source.get("url") != PLUGIN_GIT_URL:
-        errors.append(f"Codex graph-sync-agent-kit URL must be `{PLUGIN_GIT_URL}`")
-    validate_ref(source.get("ref"), "Codex", errors)
+        errors.append(f"Codex {name} entry must use Git-backed `source: url`")
+    if git_url_repo(source.get("url")) is None:
+        errors.append(f"Codex {name} URL must be `https://github.com/{REPO_OWNER}/<repo>.git`")
+    validate_ref(source.get("ref"), f"Codex {name}", errors)
 
     policy = entry.get("policy")
     if not isinstance(policy, dict):
-        errors.append("Codex graph-sync-agent-kit entry must define `policy`")
+        errors.append(f"Codex {name} entry must define `policy`")
         return
     if policy.get("installation") != "AVAILABLE":
-        errors.append("Codex graph-sync-agent-kit policy.installation must be `AVAILABLE`")
+        errors.append(f"Codex {name} policy.installation must be `AVAILABLE`")
     if policy.get("authentication") != "ON_INSTALL":
-        errors.append("Codex graph-sync-agent-kit policy.authentication must be `ON_INSTALL`")
+        errors.append(f"Codex {name} policy.authentication must be `ON_INSTALL`")
     if not non_empty_string(entry.get("category")):
-        errors.append("Codex graph-sync-agent-kit entry must define `category`")
+        errors.append(f"Codex {name} entry must define `category`")
 
 
 def validate_claude(catalog: dict[str, Any], errors: list[str]) -> None:
@@ -91,29 +87,27 @@ def validate_claude(catalog: dict[str, Any], errors: list[str]) -> None:
     if not non_empty_string(catalog.get("description")):
         errors.append("Claude marketplace must define `description`")
 
-    plugins = require_plugins(catalog, "Claude", errors)
-    if not plugins:
-        return
-    entry = require_plugin_entry(plugins, "Claude", errors)
-    if entry is None:
-        return
+    for name, entry in plugin_entries(catalog, "Claude", errors).items():
+        validate_claude_entry(name, entry, errors)
 
+
+def validate_claude_entry(name: str, entry: dict[str, Any], errors: list[str]) -> None:
     source = entry.get("source")
     if not isinstance(source, dict):
-        errors.append("Claude graph-sync-agent-kit entry must use an object `source`")
+        errors.append(f"Claude {name} entry must use an object `source`")
         return
     if source.get("source") != "github":
-        errors.append("Claude graph-sync-agent-kit entry must use `source: github`")
-    if source.get("repo") != PLUGIN_REPO:
-        errors.append(f"Claude graph-sync-agent-kit repo must be `{PLUGIN_REPO}`")
-    validate_ref(source.get("ref"), "Claude", errors)
+        errors.append(f"Claude {name} entry must use `source: github`")
+    if github_repo(source.get("repo")) is None:
+        errors.append(f"Claude {name} repo must be `{REPO_OWNER}/<repo>`")
+    validate_ref(source.get("ref"), f"Claude {name}", errors)
 
     for key in ("displayName", "description", "version", "homepage", "repository", "category"):
         if not non_empty_string(entry.get(key)):
-            errors.append(f"Claude graph-sync-agent-kit entry must define `{key}`")
+            errors.append(f"Claude {name} entry must define `{key}`")
     author = entry.get("author")
     if not isinstance(author, dict) or not non_empty_string(author.get("name")):
-        errors.append("Claude graph-sync-agent-kit entry must define `author.name`")
+        errors.append(f"Claude {name} entry must define `author.name`")
 
 
 def validate_cross_catalog(
@@ -121,20 +115,33 @@ def validate_cross_catalog(
     claude: dict[str, Any],
     errors: list[str],
 ) -> None:
-    codex_entry = require_plugin_entry(codex.get("plugins", []), "Codex", errors)
-    claude_entry = require_plugin_entry(claude.get("plugins", []), "Claude", errors)
-    if codex_entry is None or claude_entry is None:
-        return
+    # Problems inside each catalog were already reported above.
+    codex_entries = plugin_entries(codex, "Codex", [])
+    claude_entries = plugin_entries(claude, "Claude", [])
 
-    codex_ref = codex_entry.get("source", {}).get("ref")
-    claude_ref = claude_entry.get("source", {}).get("ref")
-    if codex_ref != claude_ref:
-        errors.append("Codex and Claude graph-sync-agent-kit refs must match")
+    for name in sorted(codex_entries.keys() - claude_entries.keys()):
+        errors.append(f"`{name}` is in the Codex marketplace but not in the Claude one")
+    for name in sorted(claude_entries.keys() - codex_entries.keys()):
+        errors.append(f"`{name}` is in the Claude marketplace but not in the Codex one")
 
-    claude_version = claude_entry.get("version")
-    if isinstance(codex_ref, str) and isinstance(claude_version, str):
-        if codex_ref.removeprefix("v") != claude_version:
-            errors.append("Marketplace ref must match Claude plugin entry version")
+    for name in sorted(codex_entries.keys() & claude_entries.keys()):
+        codex_source = codex_entries[name].get("source")
+        claude_source = claude_entries[name].get("source")
+        if not isinstance(codex_source, dict) or not isinstance(claude_source, dict):
+            continue
+
+        if git_url_repo(codex_source.get("url")) != github_repo(claude_source.get("repo")):
+            errors.append(f"Codex and Claude {name} entries must point at the same repository")
+
+        codex_ref = codex_source.get("ref")
+        claude_ref = claude_source.get("ref")
+        if codex_ref != claude_ref:
+            errors.append(f"Codex and Claude {name} refs must match")
+
+        claude_version = claude_entries[name].get("version")
+        if isinstance(codex_ref, str) and isinstance(claude_version, str):
+            if codex_ref.removeprefix("v") != claude_version:
+                errors.append(f"Marketplace {name} ref must match Claude plugin entry version")
 
 
 def require_plugins(
@@ -152,24 +159,45 @@ def require_plugins(
     return plugins
 
 
-def require_plugin_entry(
-    plugins: list[dict[str, Any]],
+def plugin_entries(
+    catalog: dict[str, Any],
     label: str,
     errors: list[str],
-) -> dict[str, Any] | None:
-    matches = [entry for entry in plugins if entry.get("name") == PLUGIN_NAME]
-    if not matches:
-        errors.append(f"{label} marketplace must include `{PLUGIN_NAME}`")
+) -> dict[str, dict[str, Any]]:
+    entries: dict[str, dict[str, Any]] = {}
+    for entry in require_plugins(catalog, label, errors):
+        name = entry.get("name")
+        if not non_empty_string(name):
+            errors.append(f"{label} marketplace plugins must define `name`")
+            continue
+        if name in entries:
+            errors.append(f"{label} marketplace must not duplicate `{name}`")
+            continue
+        entries[name] = entry
+    return entries
+
+
+def github_repo(repo: Any) -> str | None:
+    """Return `wordlift/<repo>` when `repo` names a WordLift repository."""
+    if not isinstance(repo, str):
         return None
-    if len(matches) > 1:
-        errors.append(f"{label} marketplace must not duplicate `{PLUGIN_NAME}`")
+    owner, _, name = repo.partition("/")
+    if owner != REPO_OWNER or not name or "/" in name:
         return None
-    return matches[0]
+    return repo
+
+
+def git_url_repo(url: Any) -> str | None:
+    """Return `wordlift/<repo>` for a WordLift GitHub clone URL."""
+    prefix = "https://github.com/"
+    if not isinstance(url, str) or not url.startswith(prefix) or not url.endswith(".git"):
+        return None
+    return github_repo(url[len(prefix) : -len(".git")])
 
 
 def validate_ref(ref: Any, label: str, errors: list[str]) -> None:
     if not isinstance(ref, str) or SEMVER_TAG_RE.fullmatch(ref) is None:
-        errors.append(f"{label} graph-sync-agent-kit source ref must be a semver tag")
+        errors.append(f"{label} source ref must be a semver tag")
 
 
 def load_json(path: Path, errors: list[str]) -> dict[str, Any] | None:
