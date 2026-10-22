@@ -30,6 +30,30 @@
         "skills"
       ],
       "category": "engineering"
+    },
+    {
+      "name": "wordlift-skills",
+      "displayName": "WordLift Skills",
+      "source": {
+        "source": "github",
+        "repo": "wordlift/intra-skills",
+        "ref": "v0.1.0"
+      },
+      "description": "Agent skills for WordLift: check a knowledge graph with its API key, report Graph KPIs and GEO lift, and apply the WordLift brand.",
+      "version": "0.1.0",
+      "author": {
+        "name": "WordLift"
+      },
+      "homepage": "https://github.com/wordlift/intra-skills",
+      "repository": "https://github.com/wordlift/intra-skills",
+      "keywords": [
+        "wordlift",
+        "knowledge-graph",
+        "graph-kpis",
+        "brand",
+        "skills"
+      ],
+      "category": "engineering"
     }
   ]
 }
